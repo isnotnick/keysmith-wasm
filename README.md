@@ -18,3 +18,13 @@ It does however generate multiple key sizes and key types.
 On the 'To Do' for later will be self-signed certs, maybe a root-and-issuing-CA combination, and likely PKCS#12 conversion.
 
 If WASM isn't your thing, PKI.js and forge.js are both great, and pure JS.
+
+Included is:
+* keysmith-wasm.go (the Go that includes the 'keysmith' package and then wraps a function usable from JS)
+* index.html
+* main.wasm (the compiled-to-WASM version of keysmith-wasm.go)
+* wasm_exec.js
+
+
+Compile to WASM with:
+GOOS=js GOARCH=wasm go build -o main.wasm keysmith-wasm.go
