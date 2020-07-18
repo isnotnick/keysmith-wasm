@@ -10,14 +10,36 @@
 
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.0/milligram.min.css">
 
+  <!--
+        Add the following polyfill for Microsoft Edge 17/18 support:
+        <script src="https://cdn.jsdelivr.net/npm/text-encoding@0.7.0/lib/encoding.min.js"></script>
+        (see https://caniuse.com/#feat=textencoder)
+     -->
+
   <script src="wasm_exec.js"></script>
 	<script>
-		async function init() {
-			const go = new Go();
-			let result = await WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject)
-			go.run(result.instance);
+		if (!WebAssembly.instantiateStreaming) { // polyfill
+				WebAssembly.instantiateStreaming = async (resp, importObject) => {
+						const source = await (await resp).arrayBuffer();
+						return await WebAssembly.instantiate(source, importObject);
+				};
 		}
-		init();
+
+		const go = new Go();
+		let mod, inst;
+		WebAssembly.instantiateStreaming(fetch("test.wasm"), go.importObject).then((result) => {
+				mod = result.module;
+				inst = result.instance;
+				document.getElementById("runButton").disabled = false;
+		}).catch((err) => {
+				console.error(err);
+		});
+
+		async function run() {
+				console.clear();
+				await go.run(inst);
+				inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
+		}
 
 	function csrGenerator() {
 		var subjectCN = document.getElementById('cnField').value || document.getElementById('cnField').placeholder;
