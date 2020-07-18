@@ -30,7 +30,6 @@
 		WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
 				mod = result.module;
 				inst = result.instance;
-				document.getElementById("runButton").disabled = false;
 		}).catch((err) => {
 				console.error(err);
 		});
