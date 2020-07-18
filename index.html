@@ -11,69 +11,71 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.4.0/milligram.min.css">
 
   <!--
-        Add the following polyfill for Microsoft Edge 17/18 support:
-        <script src="https://cdn.jsdelivr.net/npm/text-encoding@0.7.0/lib/encoding.min.js"></script>
-        (see https://caniuse.com/#feat=textencoder)
-     -->
+	Add the following polyfill for Microsoft Edge 17/18 support:
+	<script src="https://cdn.jsdelivr.net/npm/text-encoding@0.7.0/lib/encoding.min.js"></script>
+	(see https://caniuse.com/#feat=textencoder)
+	-->
 
-  <script src="wasm_exec.js"></script>
+	<script src="wasm_exec.js"></script>
 	<script>
-		if (!WebAssembly.instantiateStreaming) { // polyfill
-				WebAssembly.instantiateStreaming = async (resp, importObject) => {
-						const source = await (await resp).arrayBuffer();
-						return await WebAssembly.instantiate(source, importObject);
-				};
+		; (async () => {
+			// polyfill
+			if (!WebAssembly.instantiateStreaming) {
+				WebAssembly.instantiateStreaming = async (response, importObject) => {
+					const source = await response
+					const buffer = await source.arrayBuffer()
+					return await WebAssembly.instantiate(buffer, importObject)
+				}
+			}
+
+
+			// go!
+			const go = new Go()
+
+			try {
+				const response = fetch('main.wasm')
+				const result = await WebAssembly.instantiateStreaming(response, go.importObject)
+				await go.run(result.instance)
+				document.querySelector('section').textContent = `Runtime error! See console for details.`
+			} catch (error) {
+				console.error(error)
+				document.querySelector('section').textContent = `Load error! See console for details.`
+			}
+		})();
+
+		function csrGenerator() {
+			var subjectCN = document.getElementById('cnField').value || document.getElementById('cnField').placeholder;
+			//	Maybe we should check the SANS input is fully comma-separated?
+			var subjectSANS = document.getElementById('sansField').value || document.getElementById('sansField').placeholder;
+			var subjectO = document.getElementById('oField').value || document.getElementById('oField').placeholder;
+			var subjectOU = document.getElementById('ouField').value || document.getElementById('ouField').placeholder;
+			var subjectL = document.getElementById('lField').value || document.getElementById('lField').placeholder;
+			var subjectST = document.getElementById('stField').value || document.getElementById('stField').placeholder;
+
+			var keyTypeAndSize = document.getElementById('keyTypeField').value.split("-");
+			var keyType = keyTypeAndSize[0];
+			var keySize = parseInt(keyTypeAndSize[1]);
+
+			var requestObject = {
+				"SubjectInfo": {
+					"CN": subjectCN,
+					"O": subjectO,
+					"OU": subjectOU,
+					"L": subjectL,
+					"ST": subjectST,
+					"C": document.getElementById('cField').value,
+					"SANS": subjectSANS,
+				},
+				"KeyType": keyType,
+				"KeySize": keySize,
+			};
+
+			//var requestInfo = '{ "SubjectInfo": { "CN": "nickfrance.com", "C": "GB", "SANS": "nickfrance.com,www.nickfrance.com,secure.nickfrance.com" }, "KeyType": "EC", "KeySize": 384 }';
+			var generatedCSR;
+			generatedCSR = JSON.parse(generateCSR(JSON.stringify(requestObject)));
+			document.getElementById('csrField').value = generatedCSR.csrPEM;
+			document.getElementById('keyField').value = generatedCSR.keyPEM;
 		}
-
-		const go = new Go();
-		let mod, inst;
-		WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then((result) => {
-				mod = result.module;
-				inst = result.instance;
-		}).catch((err) => {
-				console.error(err);
-		});
-
-		async function run() {
-				console.clear();
-				await go.run(inst);
-				inst = await WebAssembly.instantiate(mod, go.importObject); // reset instance
-		}
-
-	function csrGenerator() {
-		var subjectCN = document.getElementById('cnField').value || document.getElementById('cnField').placeholder;
-		//	Maybe we should check the SANS input is fully comma-separated?
-		var subjectSANS = document.getElementById('sansField').value || document.getElementById('sansField').placeholder;
-		var subjectO = document.getElementById('oField').value || document.getElementById('oField').placeholder;
-		var subjectOU = document.getElementById('ouField').value || document.getElementById('ouField').placeholder;
-		var subjectL = document.getElementById('lField').value || document.getElementById('lField').placeholder;
-		var subjectST = document.getElementById('stField').value || document.getElementById('stField').placeholder;
-
-		var keyTypeAndSize = document.getElementById('keyTypeField').value.split("-");
-		var keyType = keyTypeAndSize[0];
-		var keySize = parseInt(keyTypeAndSize[1]);
-
-		var requestObject = {
-			"SubjectInfo": {
-				"CN": subjectCN,
-				"O": subjectO,
-				"OU": subjectOU,
-				"L": subjectL,
-				"ST": subjectST,
-				"C": document.getElementById('cField').value,
-				"SANS": subjectSANS,
-			},
-			"KeyType": keyType,
-			"KeySize": keySize,
-		};
-
-		//var requestInfo = '{ "SubjectInfo": { "CN": "nickfrance.com", "C": "GB", "SANS": "nickfrance.com,www.nickfrance.com,secure.nickfrance.com" }, "KeyType": "EC", "KeySize": 384 }';
-		var generatedCSR;
-		generatedCSR = JSON.parse(generateCSR(JSON.stringify(requestObject)));
-		document.getElementById('csrField').value = generatedCSR.csrPEM;
-		document.getElementById('keyField').value = generatedCSR.keyPEM;
-	}
-
 	</script>
 
 	<title>CSR Generator</title>
